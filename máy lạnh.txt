@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Điều Khiển Thiết Bị Thông Minh</title>
+    <!-- Tải Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Cấu hình Tailwind cho màu sắc tùy chỉnh -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-green': '#10b981', // Emerald green
+                        'light-mint': '#e0f2f1', // Light mint green for status bar
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Thiết lập font Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+        /* Custom styling cho vòng tròn gradient */
+        .gauge-ring {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            padding: 10px;
+            /* Tạo gradient border effect */
+            background: conic-gradient(
+                #8b5cf6 0%,  /* Purple */
+                #f472b6 30%, /* Pink */
+                #f97316 60%, /* Orange */
+                #8b5cf6 100%
+            );
+        }
+
+        .gauge-inner {
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .gauge-ring {
+                width: 200px;
+                height: 200px;
+            }
+            .text-6xl {
+                font-size: 3rem; /* Smaller font on mobile */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4 font-sans">
+
+    <div id="dashboard" class="w-full max-w-sm bg-white p-6 rounded-3xl shadow-xl space-y-6">
+
+        <!-- 1. Power Switch -->
+        <div class="flex justify-end">
+            <button id="powerToggle" class="flex items-center p-1 rounded-full transition-colors duration-300"
+                style="background-color: #10b981;">
+                <!-- Icon -->
+                <svg id="powerIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path>
+                    <line x1="12" y1="2" x2="12" y2="12"></line>
+                </svg>
+                <span id="powerText" class="text-sm font-semibold text-white">Bật</span>
+                <!-- Switch dot (always visible but moved) -->
+                <div id="switchDot" class="h-4 w-4 bg-white rounded-full ml-2 transition-transform duration-300 transform translate-x-0"></div>
+            </button>
+        </div>
+
+        <!-- 2. Current Status Bar (35°C / 24%) -->
+        <div class="flex items-center justify-center bg-light-mint bg-opacity-70 p-4 rounded-xl shadow-inner">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary-green mr-3" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1.172c1.472.285 2.766 1.05 3.793 2.077l.707-.707a1 1 0 111.414 1.414l-.707.707A7.001 7.001 0 0116 14.828V16a1 1 0 11-2 0v-.586l.293-.293A4.954 4.954 0 0010 6a4.954 4.954 0 00-4.293 2.293L6 8.586V10a1 1 0 11-2 0V7.828l-.707-.707a1 1 0 011.414-1.414l.707.707A7.001 7.001 0 019 4.172V3a1 1 0 011-1z" clip-rule="evenodd" />
+            </svg>
+            <span class="text-xl font-bold text-gray-800">35°C / 24%</span>
+        </div>
+
+        <!-- 3. Temperature/Humidity Toggle Switch -->
+        <div class="flex bg-gray-200 p-1 rounded-xl">
+            <button id="tempBtn" class="flex-1 py-2 rounded-lg font-semibold transition-all duration-200 bg-primary-green text-white shadow-md">
+                Nhiệt độ
+            </button>
+            <button id="humidBtn" class="flex-1 py-2 rounded-lg font-semibold transition-all duration-200 text-gray-500 hover:text-gray-700">
+                Độ ẩm
+            </button>
+        </div>
+
+        <!-- 4. Main Display (Gauge) -->
+        <div class="flex items-center justify-center p-4">
+            <div id="gaugeRing" class="gauge-ring transition-opacity duration-500">
+                <div class="gauge-inner">
+                    <div class="text-6xl font-extrabold text-gray-900 flex items-start">
+                        <span id="mainValue">17</span>
+                        <span id="mainUnit" class="text-3xl ml-1 mt-2">°</span>
+                        <div class="w-4 h-4 rounded-full bg-gray-900 ml-4 mt-2"></div> <!-- Small black dot -->
+                    </div>
+                    <p id="mainLabel" class="text-sm font-medium text-gray-500 mt-1">Nhiệt độ lý tưởng</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const powerToggle = document.getElementById('powerToggle');
+        const powerText = document.getElementById('powerText');
+        const switchDot = document.getElementById('switchDot');
+        const tempBtn = document.getElementById('tempBtn');
+        const humidBtn = document.getElementById('humidBtn');
+        const mainValue = document.getElementById('mainValue');
+        const mainUnit = document.getElementById('mainUnit');
+        const mainLabel = document.getElementById('mainLabel');
+        const gaugeRing = document.getElementById('gaugeRing');
+        const dashboard = document.getElementById('dashboard');
+
+        let isPowerOn = true;
+        let isTemperatureSelected = true;
+
+        // Dữ liệu giả lập
+        const data = {
+            temp: { value: 17, unit: '°', label: 'Nhiệt độ lý tưởng' },
+            humid: { value: 65, unit: '%', label: 'Mức độ ẩm thoải mái' }
+        };
+
+        // Hàm cập nhật trạng thái Bật/Tắt nguồn
+        function updatePowerState() {
+            if (isPowerOn) {
+                powerToggle.style.backgroundColor = '#10b981'; // Primary Green
+                powerText.textContent = 'Bật';
+                switchDot.classList.remove('translate-x-full'); // Reset switch dot position if needed
+                switchDot.classList.add('translate-x-0');
+                dashboard.classList.remove('opacity-50', 'pointer-events-none');
+            } else {
+                powerToggle.style.backgroundColor = '#9ca3af'; // Gray
+                powerText.textContent = 'Tắt';
+                switchDot.classList.remove('translate-x-0');
+                switchDot.classList.add('translate-x-full');
+                dashboard.classList.add('opacity-50', 'pointer-events-none');
+            }
+        }
+
+        // Hàm cập nhật chế độ Nhiệt độ/Độ ẩm
+        function updateMode() {
+            if (isTemperatureSelected) {
+                // Chế độ Nhiệt độ
+                tempBtn.classList.add('bg-primary-green', 'text-white', 'shadow-md');
+                humidBtn.classList.remove('bg-primary-green', 'text-white', 'shadow-md');
+                humidBtn.classList.add('text-gray-500');
+
+                mainValue.textContent = data.temp.value;
+                mainUnit.textContent = data.temp.unit;
+                mainLabel.textContent = data.temp.label;
+                gaugeRing.style.background = `conic-gradient(#8b5cf6 0%, #f472b6 30%, #f97316 60%, #8b5cf6 100%)`;
+
+            } else {
+                // Chế độ Độ ẩm
+                humidBtn.classList.add('bg-primary-green', 'text-white', 'shadow-md');
+                tempBtn.classList.remove('bg-primary-green', 'text-white', 'shadow-md');
+                tempBtn.classList.add('text-gray-500');
+
+                mainValue.textContent = data.humid.value;
+                mainUnit.textContent = data.humid.unit;
+                mainLabel.textContent = data.humid.label;
+                // Đổi gradient cho Độ ẩm (ví dụ: sang tông màu xanh dương/lục)
+                gaugeRing.style.background = `conic-gradient(#38bdf8 0%, #60a5fa 30%, #10b981 60%, #38bdf8 100%)`;
+            }
+        }
+
+        // Xử lý sự kiện
+        powerToggle.addEventListener('click', () => {
+            isPowerOn = !isPowerOn;
+            updatePowerState();
+        });
+
+        tempBtn.addEventListener('click', () => {
+            isTemperatureSelected = true;
+            updateMode();
+        });
+
+        humidBtn.addEventListener('click', () => {
+            isTemperatureSelected = false;
+            updateMode();
+        });
+
+        // Khởi tạo trạng thái ban đầu
+        window.onload = () => {
+            updatePowerState();
+            updateMode();
+        };
+
+    </script>
+</body>
+</html>
